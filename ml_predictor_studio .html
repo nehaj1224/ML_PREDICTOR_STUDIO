@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ML Predictor Studio</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-background-primary: #ffffff;
+      --color-background-secondary: #f4f3ef;
+      --color-background-tertiary: #edecea;
+      --color-text-primary: #1a1a18;
+      --color-text-secondary: #6b6a66;
+      --color-border-tertiary: rgba(0,0,0,0.12);
+      --color-border-secondary: rgba(0,0,0,0.25);
+      --color-border-primary: rgba(0,0,0,0.38);
+      --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --font-mono: 'Cascadia Code', 'Fira Mono', monospace;
+      --border-radius-md: 8px;
+      --border-radius-lg: 12px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-background-primary: #1e1e1c;
+        --color-background-secondary: #2a2a28;
+        --color-background-tertiary: #141412;
+        --color-text-primary: #f0efe9;
+        --color-text-secondary: #9e9d99;
+        --color-border-tertiary: rgba(255,255,255,0.12);
+        --color-border-secondary: rgba(255,255,255,0.25);
+        --color-border-primary: rgba(255,255,255,0.38);
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-background-tertiary);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 2rem;
+    }
+
+    .ml-wrap { font-size: 14px; color: var(--color-text-primary); }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 0.5px solid var(--color-border-tertiary);
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -0.5px;
+      font-family: var(--font-sans);
+    }
+    .tab.active {
+      color: var(--color-text-primary);
+      border-bottom-color: var(--color-text-primary);
+      font-weight: 500;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+    .card {
+      background: var(--color-background-primary);
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-lg);
+      padding: 1rem 1.25rem;
+    }
+
+    .metric {
+      background: var(--color-background-secondary);
+      border-radius: var(--border-radius-md);
+      padding: 1rem;
+      text-align: center;
+    }
+    .metric-val { font-size: 24px; font-weight: 500; margin: 4px 0 0; }
+    .metric-lbl { font-size: 12px; color: var(--color-text-secondary); }
+    .metric-val.good { color: #1D9E75; }
+    .metric-val.warn { color: #BA7517; }
+    .metric-val.bad  { color: #A32D2D; }
+
+    .ctrl-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .ctrl-row label { font-size: 13px; color: var(--color-text-secondary); min-width: 140px; }
+    .ctrl-row input[type=range] { flex: 1; accent-color: var(--color-text-primary); }
+    .ctrl-row span { font-size: 13px; font-weight: 500; min-width: 40px; text-align: right; }
+
+    select, input[type=text] {
+      font-size: 13px;
+      padding: 6px 10px;
+      border-radius: var(--border-radius-md);
+      border: 0.5px solid var(--color-border-secondary);
+      background: var(--color-background-primary);
+      color: var(--color-text-primary);
+      font-family: var(--font-sans);
+    }
+
+    .btn {
+      padding: 8px 20px;
+      border-radius: var(--border-radius-md);
+      border: 0.5px solid var(--color-border-secondary);
+      background: var(--color-background-primary);
+      color: var(--color-text-primary);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font-sans);
+    }
+    .btn:hover { background: var(--color-background-secondary); }
+    .btn-primary {
+      background: var(--color-text-primary);
+      color: var(--color-background-primary);
+      border-color: var(--color-text-primary);
+    }
+    .btn-primary:hover { opacity: 0.85; }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .algo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1.5rem; }
+    .algo-card {
+      border: 0.5px solid var(--color-border-tertiary);
+      border-radius: var(--border-radius-md);
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      background: var(--color-background-primary);
+    }
+    .algo-card:hover { border-color: var(--color-border-primary); }
+    .algo-card.selected { border: 2px solid var(--color-text-primary); }
+    .algo-name { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+    .algo-desc { font-size: 11px; color: var(--color-text-secondary); }
+
+    .progress-bar {
+      height: 6px;
+      background: var(--color-background-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+    .log {
+      background: var(--color-background-secondary);
+      border-radius: var(--border-radius-md);
+      padding: 10px 14px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--color-text-secondary);
+      height: 80px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    .legend { display: flex; gap: 16px; font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px; flex-wrap: wrap; }
+    .legend span { display: flex; align-items: center; gap: 4px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    .roc-note { font-size: 11px; color: var(--color-text-secondary); margin-top: 4px; }
+
+    .cm-cell {
+      width: 68px; height: 68px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .cm-val { font-size: 20px; font-weight: 500; }
+    .cm-lbl { font-size: 10px; }
+
+    canvas { display: block; }
+
+    h1 { font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+    p.subtitle { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.5rem; }
+
+    @media (max-width: 600px) {
+      .grid2, .grid4 { grid-template-columns: 1fr 1fr; }
+      .algo-grid { grid-template-columns: 1fr 1fr; }
+      .ctrl-row label { min-width: 100px; }
+    }
+    @media (max-width: 420px) {
+      .grid4 { grid-template-columns: 1fr 1fr; }
+      .algo-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="ml-wrap">
+    <h1>ML predictor studio</h1>
+    <p class="subtitle">Train, evaluate, and compare classification models on synthetic datasets.</p>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('configure')">Configure</button>
+      <button class="tab" onclick="showTab('train')">Train & evaluate</button>
+      <button class="tab" onclick="showTab('visualize')">Visualize</button>
+      <button class="tab" onclick="showTab('compare')">Compare models</button>
+    </div>
+
+    <!-- ── Configure ── -->
+    <div id="tab-configure" class="panel active">
+      <div class="section-title">Dataset</div>
+      <div class="grid2" style="margin-bottom:1.5rem;">
+        <div>
+          <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px;">Dataset type</div>
+          <select id="dataset-type" style="width:100%;">
+            <option value="binary">Binary classification (fraud detection)</option>
+            <option value="multi">Multi-class (iris species)</option>
+            <option value="medical">Medical diagnosis</option>
+            <option value="churn">Customer churn</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px;">Class balance</div>
+          <select id="balance" style="width:100%;">
+            <option value="balanced">Balanced (50/50)</option>
+            <option value="slight">Slightly imbalanced (70/30)</option>
+            <option value="imbalanced">Imbalanced (90/10)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="ctrl-row">
+        <label>Samples</label>
+        <input type="range" min="100" max="5000" step="100" value="1000" id="n-samples"
+               oninput="document.getElementById('n-out').textContent=this.value">
+        <span id="n-out">1000</span>
+      </div>
+      <div class="ctrl-row">
+        <label>Features</label>
+        <input type="range" min="2" max="20" step="1" value="8" id="n-features"
+               oninput="document.getElementById('f-out').textContent=this.value">
+        <span id="f-out">8</span>
+      </div>
+      <div class="ctrl-row">
+        <label>Noise level</label>
+        <input type="range" min="0" max="50" step="5" value="15" id="noise"
+               oninput="document.getElementById('noise-out').textContent=this.value+'%'">
+        <span id="noise-out">15%</span>
+      </div>
+      <div class="ctrl-row">
+        <label>Train / test split</label>
+        <input type="range" min="50" max="90" step="5" value="80" id="split"
+               oninput="document.getElementById('split-out').textContent=this.value+'%'">
+        <span id="split-out">80%</span>
+      </div>
+
+      <div class="section-title" style="margin-top:1.5rem;">Algorithm</div>
+      <div class="algo-grid">
+        <div class="algo-card selected" onclick="selectAlgo(this,'lr')">
+          <div class="algo-name">Logistic regression</div>
+          <div class="algo-desc">Fast, interpretable baseline</div>
+        </div>
+        <div class="algo-card" onclick="selectAlgo(this,'dt')">
+          <div class="algo-name">Decision tree</div>
+          <div class="algo-desc">Rule-based, easy to explain</div>
+        </div>
+        <div class="algo-card" onclick="selectAlgo(this,'rf')">
+          <div class="algo-name">Random forest</div>
+          <div class="algo-desc">Ensemble of many trees</div>
+        </div>
+        <div class="algo-card" onclick="selectAlgo(this,'svm')">
+          <div class="algo-name">SVM</div>
+          <div class="algo-desc">Max-margin classifier</div>
+        </div>
+        <div class="algo-card" onclick="selectAlgo(this,'knn')">
+          <div class="algo-name">k-NN</div>
+          <div class="algo-desc">Neighbor-based voting</div>
+        </div>
+        <div class="algo-card" onclick="selectAlgo(this,'nb')">
+          <div class="algo-name">Naive Bayes</div>
+          <div class="algo-desc">Probabilistic, very fast</div>
+        </div>
+      </div>
+
+      <div id="algo-params"></div>
+      <button class="btn btn-primary" onclick="runTraining()" style="margin-top:0.5rem;">Train model</button>
+    </div>
+
+    <!-- ── Train ── -->
+    <div id="tab-train" class="panel">
+      <div id="train-idle" style="color:var(--color-text-secondary);font-size:13px;padding:2rem 0;">
+        Configure a model first, then click "Train model" to start.
+      </div>
+      <div id="train-results" style="display:none;">
+        <div class="grid4" style="margin-bottom:1.5rem;" id="metrics-grid"></div>
+        <div class="grid2">
+          <div class="card">
+            <div class="section-title">Confusion matrix</div>
+            <div id="cm-container" style="display:flex;align-items:center;justify-content:center;padding:0.5rem;"></div>
+          </div>
+          <div class="card">
+            <div class="section-title">Training log</div>
+            <div class="log" id="train-log"></div>
+            <div style="margin-top:1rem;">
+              <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:4px;">Accuracy progress</div>
+              <div class="progress-bar">
+                <div class="progress-fill" id="acc-bar" style="background:#1D9E75;width:0%;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--color-text-secondary);">
+                <span>0%</span><span id="acc-label">—</span><span>100%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Visualize ── -->
+    <div id="tab-visualize" class="panel">
+      <div id="viz-idle" style="color:var(--color-text-secondary);font-size:13px;padding:2rem 0;">
+        Train a model first to see visualizations.
+      </div>
+      <div id="viz-results" style="display:none;">
+        <div style="margin-bottom:1.5rem;">
+          <div class="section-title">ROC curve</div>
+          <div class="legend" id="roc-legend"></div>
+          <div style="position:relative;height:260px;">
+            <canvas id="roc-chart" role="img" aria-label="ROC curve showing true positive rate vs false positive rate"></canvas>
+          </div>
+          <div class="roc-note" id="roc-auc"></div>
+        </div>
+        <div>
+          <div class="section-title">Feature importance</div>
+          <div id="feat-wrap" style="position:relative;">
+            <canvas id="feat-chart" role="img" aria-label="Feature importance bar chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Compare ── -->
+    <div id="tab-compare" class="panel">
+      <div id="compare-idle" style="color:var(--color-text-secondary);font-size:13px;padding:2rem 0;">
+        Train at least one model to compare. Train multiple models to see side-by-side results.
+      </div>
+      <div id="compare-results" style="display:none;">
+        <div class="section-title">Model accuracy comparison</div>
+        <div id="compare-bars" style="margin-bottom:1.5rem;"></div>
+        <div style="position:relative;height:240px;margin-bottom:1.5rem;">
+          <canvas id="compare-chart" role="img" aria-label="Bar chart comparing model metrics across algorithms"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- .ml-wrap -->
+</div><!-- .container -->
+
+<script>
+  /* ── State ── */
+  let selectedAlgo = 'lr';
+  let trainedModels = [];
+  let rocChart = null, featChart = null, compareChart = null;
+
+  /* ── Algorithm hyperparameter panels ── */
+  const algoParams = {
+    lr: `<div class="ctrl-row"><label>Regularization (C)</label>
+         <input type="range" min="1" max="10" value="1" step="1"
+                oninput="document.getElementById('c-out').textContent=this.value">
+         <span id="c-out">1</span></div>`,
+    dt: `<div class="ctrl-row"><label>Max depth</label>
+         <input type="range" min="1" max="20" value="5" step="1"
+                oninput="document.getElementById('d-out').textContent=this.value">
+         <span id="d-out">5</span></div>`,
+    rf: `<div class="ctrl-row"><label>No. of trees</label>
+         <input type="range" min="10" max="500" value="100" step="10"
+                oninput="document.getElementById('t-out').textContent=this.value">
+         <span id="t-out">100</span></div>`,
+    svm:`<div class="ctrl-row"><label>Kernel</label>
+         <select style="flex:1"><option>RBF</option><option>Linear</option><option>Poly</option></select></div>`,
+    knn:`<div class="ctrl-row"><label>k neighbors</label>
+         <input type="range" min="1" max="20" value="5" step="1"
+                oninput="document.getElementById('k-out').textContent=this.value">
+         <span id="k-out">5</span></div>`,
+    nb: `<div style="font-size:12px;color:var(--color-text-secondary);padding:4px 0;">
+         Gaussian Naive Bayes — no hyperparameters required.</div>`
+  };
+
+  const algoNames = {
+    lr:'Logistic regression', dt:'Decision tree', rf:'Random forest',
+    svm:'SVM', knn:'k-NN', nb:'Naive Bayes'
+  };
+
+  /* ── Tab switching ── */
+  function showTab(id) {
+    document.querySelectorAll('.tab').forEach((t, i) =>
+      t.classList.toggle('active', ['configure','train','visualize','compare'][i] === id));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+  }
+
+  /* ── Algorithm selection ── */
+  function selectAlgo(el, algo) {
+    document.querySelectorAll('.algo-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedAlgo = algo;
+    document.getElementById('algo-params').innerHTML = algoParams[algo];
+  }
+  document.getElementById('algo-params').innerHTML = algoParams['lr'];
+
+  /* ── Metric simulation ── */
+  function generateMetrics(algo, noise, balance) {
+    const base = { lr:0.87, dt:0.83, rf:0.91, svm:0.89, knn:0.84, nb:0.80 };
+    const penalty = balance === 'imbalanced' ? 0.03 : balance === 'slight' ? 0.01 : 0;
+    const acc  = clamp(base[algo] - (noise/100)*0.3 - penalty + jitter(0.03), 0.50, 0.99);
+    const prec = clamp(acc - 0.02 + jitter(0.04), 0.50, 0.99);
+    const rec  = clamp(acc - 0.03 + jitter(0.04), 0.50, 0.99);
+    const f1   = 2*prec*rec/(prec+rec);
+    const auc  = clamp(acc + 0.02 + jitter(0.02), 0.50, 0.99);
+    return { acc, prec, rec, f1, auc };
+  }
+
+  function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+  function jitter(range) { return (Math.random() - 0.5) * range; }
+
+  /* ── Confusion matrix simulation ── */
+  function generateCM(acc, n) {
+    const total = Math.round(n * 0.2);
+    const tp = Math.round(total * 0.5 * acc);
+    const tn = Math.round(total * 0.5 * acc);
+    const fp = Math.max(0, Math.round(total * 0.5 * (1 - acc)));
+    const fn = Math.max(0, total - tp - tn - fp);
+    return { tp, tn, fp, fn };
+  }
+
+  /* ── ROC curve points ── */
+  function generateROC(auc) {
+    const pts = [{ x:0, y:0 }];
+    for (let i = 1; i < 20; i++) {
+      const fpr = i / 19;
+      const tpr = Math.min(1, Math.pow(fpr, 1 / (auc * 3)));
+      pts.push({ x: Math.round(fpr*100)/100, y: Math.round(tpr*100)/100 });
+    }
+    pts.push({ x:1, y:1 });
+    return pts;
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  /* ── Main training flow ── */
+  async function runTraining() {
+    const noise    = parseInt(document.getElementById('noise').value);
+    const balance  = document.getElementById('balance').value;
+    const nSamples = parseInt(document.getElementById('n-samples').value);
+    const nFeat    = parseInt(document.getElementById('n-features').value);
+    const split    = document.getElementById('split').value;
+    const metrics  = generateMetrics(selectedAlgo, noise, balance);
+    const cm       = generateCM(metrics.acc, nSamples);
+
+    showTab('train');
+    document.getElementById('train-idle').style.display  = 'none';
+    document.getElementById('train-results').style.display = 'block';
+    document.getElementById('viz-idle').style.display   = 'none';
+    document.getElementById('viz-results').style.display  = 'block';
+
+    const log = document.getElementById('train-log');
+    log.textContent = '';
+    document.getElementById('acc-bar').style.width = '0%';
+    document.getElementById('acc-label').textContent = '—';
+
+    const status = metrics.acc > 0.88
+      ? '✓ Good performance'
+      : metrics.acc > 0.75 ? '⚠ Acceptable — consider tuning'
+      : '✗ Low accuracy — check data & params';
+
+    const msgs = [
+      `Initializing ${algoNames[selectedAlgo]}...`,
+      `Loaded ${nSamples} samples, ${nFeat} features`,
+      `Train/test split: ${split}% / ${100 - parseInt(split)}%`,
+      `Fitting model on training set...`,
+      `Evaluating on test set...`,
+      `Done. ${status}`
+    ];
+
+    for (const m of msgs) {
+      await sleep(220);
+      log.textContent += m + '\n';
+      log.scrollTop = log.scrollHeight;
+    }
+
+    document.getElementById('acc-bar').style.width = Math.round(metrics.acc * 100) + '%';
+    document.getElementById('acc-label').textContent = Math.round(metrics.acc * 100) + '%';
+
+    const colorClass = v => v >= 0.88 ? 'good' : v >= 0.75 ? 'warn' : 'bad';
+    document.getElementById('metrics-grid').innerHTML = [
+      ['Accuracy', metrics.acc],
+      ['Precision', metrics.prec],
+      ['Recall',    metrics.rec],
+      ['AUC-ROC',   metrics.auc]
+    ].map(([l, v]) =>
+      `<div class="metric">
+         <div class="metric-lbl">${l}</div>
+         <div class="metric-val ${colorClass(v)}">${(v*100).toFixed(1)}%</div>
+       </div>`
+    ).join('');
+
+    /* Confusion matrix */
+    document.getElementById('cm-container').innerHTML = `
+      <div style="display:grid;grid-template-columns:auto 68px 68px;gap:4px;align-items:center;font-size:11px;color:var(--color-text-secondary);">
+        <div></div>
+        <div style="text-align:center;">Pred +</div>
+        <div style="text-align:center;">Pred –</div>
+        <div style="writing-mode:vertical-lr;transform:rotate(180deg);padding-right:4px;">Actual +</div>
+        <div class="cm-cell" style="background:#EAF3DE;">
+          <div class="cm-val" style="color:#3B6D11;">${cm.tp}</div>
+          <div class="cm-lbl" style="color:#3B6D11;">TP</div>
+        </div>
+        <div class="cm-cell" style="background:#FCEBEB;">
+          <div class="cm-val" style="color:#A32D2D;">${cm.fn}</div>
+          <div class="cm-lbl" style="color:#A32D2D;">FN</div>
+        </div>
+        <div style="writing-mode:vertical-lr;transform:rotate(180deg);padding-right:4px;">Actual –</div>
+        <div class="cm-cell" style="background:#FAEEDA;">
+          <div class="cm-val" style="color:#854F0B;">${cm.fp}</div>
+          <div class="cm-lbl" style="color:#854F0B;">FP</div>
+        </div>
+        <div class="cm-cell" style="background:#EAF3DE;">
+          <div class="cm-val" style="color:#3B6D11;">${cm.tn}</div>
+          <div class="cm-lbl" style="color:#3B6D11;">TN</div>
+        </div>
+      </div>`;
+
+    drawROC(metrics.auc);
+    drawFeatureImportance(nFeat);
+
+    /* Store/update model for comparison */
+    const idx = trainedModels.findIndex(m => m.algo === selectedAlgo);
+    const entry = { algo: selectedAlgo, name: algoNames[selectedAlgo], metrics };
+    if (idx >= 0) trainedModels[idx] = entry;
+    else trainedModels.push(entry);
+    updateCompare();
+  }
+
+  /* ── ROC chart ── */
+  function drawROC(auc) {
+    const pts  = generateROC(auc);
+    const diag = Array.from({length:11}, (_, i) => ({ x: i/10, y: i/10 }));
+    if (rocChart) rocChart.destroy();
+    rocChart = new Chart(document.getElementById('roc-chart'), {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: algoNames[selectedAlgo],
+            data: pts,
+            borderColor: '#1D9E75', borderWidth: 2,
+            fill: false, tension: 0.3, pointRadius: 0
+          },
+          {
+            label: 'Random baseline',
+            data: diag,
+            borderColor: '#888780', borderWidth: 1,
+            borderDash: [4,4], fill: false, pointRadius: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { type:'linear', min:0, max:1,
+               title:{ display:true, text:'False positive rate', font:{ size:11 } },
+               ticks:{ font:{ size:11 } } },
+          y: { min:0, max:1,
+               title:{ display:true, text:'True positive rate', font:{ size:11 } },
+               ticks:{ font:{ size:11 } } }
+        }
+      }
+    });
+
+    document.getElementById('roc-legend').innerHTML = `
+      <span><span class="legend-dot" style="background:#1D9E75;"></span>${algoNames[selectedAlgo]}</span>
+      <span><span class="legend-dot" style="background:#888780;"></span>Random baseline</span>`;
+    document.getElementById('roc-auc').textContent =
+      `AUC = ${auc.toFixed(3)} — higher is better (1.0 = perfect, 0.5 = random)`;
+  }
+
+  /* ── Feature importance chart ── */
+  function drawFeatureImportance(n) {
+    const raw = Array.from({length: n}, () => Math.random());
+    const sum = raw.reduce((a,b) => a+b, 0);
+    const imp = raw.map(v => Math.round(v/sum*1000)/10).sort((a,b) => b-a);
+    const labels = imp.map((_, i) => `Feature ${i+1}`);
+
+    const wrapper = document.getElementById('feat-wrap');
+    wrapper.style.height = Math.max(160, n * 26 + 60) + 'px';
+    wrapper.style.position = 'relative';
+
+    if (featChart) featChart.destroy();
+    featChart = new Chart(document.getElementById('feat-chart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{ label:'Importance', data: imp, backgroundColor:'#B5D4F4' }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{ display:false } },
+        scales: {
+          x: { title:{ display:true, text:'Relative importance (%)', font:{size:11} }, ticks:{font:{size:11}} },
+          y: { ticks:{ font:{size:11} } }
+        }
+      }
+    });
+  }
+
+  /* ── Compare chart ── */
+  const PALETTE = ['#1D9E75','#378ADD','#D85A30','#D4537E','#7F77DD','#63a522'];
+
+  function updateCompare() {
+    if (trainedModels.length === 0) return;
+    document.getElementById('compare-idle').style.display  = 'none';
+    document.getElementById('compare-results').style.display = 'block';
+
+    document.getElementById('compare-bars').innerHTML = trainedModels.map((m, i) => {
+      const pct = Math.round(m.metrics.acc * 100);
+      return `<div style="margin-bottom:8px;">
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:3px;">${m.name}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:20px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:${PALETTE[i%PALETTE.length]};border-radius:3px;"></div>
+          </div>
+          <span style="font-size:12px;font-weight:500;min-width:36px;">${pct}%</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    if (compareChart) compareChart.destroy();
+    compareChart = new Chart(document.getElementById('compare-chart'), {
+      type: 'bar',
+      data: {
+        labels: ['Accuracy','Precision','Recall','F1','AUC'],
+        datasets: trainedModels.map((m, i) => ({
+          label: m.name,
+          data: [m.metrics.acc, m.metrics.prec, m.metrics.rec, m.metrics.f1, m.metrics.auc]
+                .map(v => Math.round(v*1000)/10),
+          backgroundColor: PALETTE[i % PALETTE.length]
+        }))
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min:50, max:100,
+               title:{ display:true, text:'Score (%)', font:{size:11} },
+               ticks:{ font:{size:11} } },
+          x: { ticks:{ font:{size:11} } }
+        }
+      }
+    });
+  }
+</script>
+</body>
+</html>
